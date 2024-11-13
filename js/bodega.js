@@ -1,61 +1,54 @@
-import { initializeGapiClient, loadSheetData, appendData } from '/Red-Logistica/js/googleSheets.js';
+import { initializeGapiClient, loadSheetData, appendData, isUserAuthenticated } from '/Red-Logistica/js/googleSheets.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
+        // Espera a que la API de Google se haya cargado completamente antes de inicializar el cliente
+        await ensureGoogleApiLoaded();
         await initializeGapiClient();
         console.log("Conectado a Google Sheets");
 
-        checkConnectionStatus();
-        setUpEventListeners();
-
-        // Cargar datos de la tabla de ingresos
-        await loadInventory();
+        // Verificar si el usuario está autenticado
+        if (isUserAuthenticated()) {
+            await loadInventory();
+        } else {
+            console.warn("Usuario no autenticado");
+        }
     } catch (error) {
         console.error("Error al conectar con Google Sheets:", error);
     }
 });
 
-// Verificar estado de conexión
-function checkConnectionStatus() {
-    const connectionStatus = document.getElementById("connection-status");
-    connectionStatus.textContent = "Conectado";
-    connectionStatus.classList.add("connected");
+// Función para verificar si la API de Google está completamente cargada
+async function ensureGoogleApiLoaded() {
+    return new Promise((resolve, reject) => {
+        if (typeof gapi !== 'undefined') {
+            resolve();
+        } else {
+            console.error("La API de Google no se ha cargado.");
+            reject("API de Google no cargada");
+        }
+    });
 }
 
-// Configurar eventos
-function setUpEventListeners() {
-    const addSupplyForm = document.getElementById("add-supply-form");
-
-    if (addSupplyForm) {
-        addSupplyForm.addEventListener("submit", registerSupplyEntry);
-    }
-}
-
-// Cargar datos en la tabla de ingresos
+// Función para cargar datos en la tabla de ingresos
 async function loadInventory() {
     try {
         const inventoryData = await loadSheetData("bodega!A2:D");
         const tableBody = document.getElementById("ingreso-table-body");
         tableBody.innerHTML = '';
 
-        inventoryData.forEach(item => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${item[0]}</td>
-                <td>${item[1]}</td>
-                <td>${item[2]}</td>
-                <td>${item[3]}</td>
-            `;
-            tableBody.appendChild(row);
+        inventoryData.forEach(row => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `<td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td>`;
+            tableBody.appendChild(tr);
         });
-
     } catch (error) {
         console.error("Error al cargar datos de inventario:", error);
     }
 }
 
-// Registrar nuevo ingreso
-async function registerSupplyEntry(e) {
+// Función para registrar un nuevo ingreso
+document.getElementById("add-supply-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const itemName = document.getElementById("ingreso-item-name").value.trim();
@@ -67,17 +60,12 @@ async function registerSupplyEntry(e) {
         try {
             const values = [[itemName, itemQuantity, itemCategory, date]];
             await appendData("bodega!A2:D", values);
-
             alert("Ingreso registrado exitosamente");
             await loadInventory();
-
-            // Limpiar formulario
-            e.target.reset();
         } catch (error) {
             console.error("Error al registrar ingreso:", error);
-            alert("Hubo un error al registrar el ingreso. Inténtalo de nuevo.");
         }
     } else {
         alert("Por favor, completa todos los campos.");
     }
-}
+});
