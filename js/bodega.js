@@ -2,19 +2,13 @@ import { initializeGapiClient, loadSheetData, appendData, isUserAuthenticated } 
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
-        // Inicializar Google API y autenticación
         await initializeGapiClient();
+        console.log("Conectado a Google Sheets");
         checkConnectionStatus();
-
-        // Configurar eventos para botones y formularios
         setUpEventListeners();
-
-        // Cargar datos iniciales
-        await loadInventory();
-        await loadDeliveries();
-        await updateSummaryCounters();
+        await loadInitialData();
     } catch (error) {
-        console.error("Error durante la carga inicial:", error);
+        console.error("Error al conectar con Google Sheets:", error);
     }
 });
 
@@ -25,13 +19,12 @@ function checkConnectionStatus() {
         console.error("Elemento de estado de conexión no encontrado.");
         return;
     }
-
     const isConnected = isUserAuthenticated();
     connectionStatus.textContent = isConnected ? "Conectado" : "Desconectado";
     connectionStatus.classList.toggle("connected", isConnected);
 }
 
-// Configurar eventos para los botones y formularios
+// Configurar eventos para botones y formularios
 function setUpEventListeners() {
     const stockButton = document.getElementById("reviewStockBtn");
     const closeStockModalBtn = document.getElementById("closeStockModalBtn");
@@ -41,46 +34,85 @@ function setUpEventListeners() {
     const truckDeliveryBtn = document.getElementById("registerTruckDeliveryBtn");
     const submitTruckDeliveryBtn = document.getElementById("submitTruckDeliveryBtn");
 
+    // Revisar si los elementos existen antes de añadir el listener
     if (stockButton) stockButton.addEventListener("click", openStockModal);
-    else console.error("Botón 'reviewStockBtn' no encontrado.");
-
     if (closeStockModalBtn) closeStockModalBtn.addEventListener("click", closeStockModal);
-    else console.error("Botón 'closeStockModalBtn' no encontrado.");
-
     if (downloadSummaryBtn) downloadSummaryBtn.addEventListener("click", downloadPDF);
-    else console.error("Botón 'downloadSummaryBtn' no encontrado.");
-
     if (addSupplyForm) addSupplyForm.addEventListener("submit", registerSupplyEntry);
-    else console.error("Formulario 'add-supply-form' no encontrado.");
-
     if (removeSupplyForm) removeSupplyForm.addEventListener("submit", registerSupplyExit);
-    else console.error("Formulario 'remove-supply-form' no encontrado.");
-
     if (truckDeliveryBtn) truckDeliveryBtn.addEventListener("click", openTruckDeliveryModal);
-    else console.error("Botón 'registerTruckDeliveryBtn' no encontrado.");
-
     if (submitTruckDeliveryBtn) submitTruckDeliveryBtn.addEventListener("click", registerTruckDelivery);
-    else console.error("Botón 'submitTruckDeliveryBtn' no encontrado.");
 }
 
-// Funciones para abrir y cerrar modales
+// Función para abrir el modal de stock
 function openStockModal() {
     const modal = document.getElementById("stockModal");
     if (modal) {
-        modal.style.display = "flex";
+        modal.style.display = "block";
         loadStockData();
-    } else {
-        console.error("Modal de stock no encontrado.");
     }
 }
 
+// Función para cerrar el modal de stock
 function closeStockModal() {
     const modal = document.getElementById("stockModal");
     if (modal) {
         modal.style.display = "none";
-    } else {
-        console.error("Modal de stock no encontrado.");
     }
+}
+
+// Cargar datos iniciales
+async function loadInitialData() {
+    await loadInventory();
+    await loadDeliveries();
+    await updateSummaryCounters();
+}
+
+// Actualizar contadores de resumen
+async function updateSummaryCounters() {
+    const inventoryData = await loadSheetData("bodega!A2:D");
+    const deliveryData = await loadSheetData("bodega!E2:H");
+    const lowStockCount = inventoryData.filter(item => parseInt(item[1], 10) < 5).length;
+
+    document.getElementById("total-inventory").textContent = `${inventoryData.length} artículos`;
+    document.getElementById("truck-deliveries").textContent = `${deliveryData.length} entregas`;
+    document.getElementById("low-stock-alerts").textContent = `${lowStockCount} alertas`;
+}
+
+// Cargar datos de inventario
+async function loadInventory() {
+    const inventoryData = await loadSheetData("bodega!A2:D");
+    const tableBody = document.getElementById("ingreso-table-body");
+    tableBody.innerHTML = '';
+
+    inventoryData.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item[0]}</td>
+            <td>${item[1]}</td>
+            <td>${item[2]}</td>
+            <td>${item[3]}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+// Cargar datos de entregas
+async function loadDeliveries() {
+    const deliveryData = await loadSheetData("bodega!E2:H");
+    const tableBody = document.getElementById("egreso-table-body");
+    tableBody.innerHTML = '';
+
+    deliveryData.forEach(item => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${item[0]}</td>
+            <td>${item[1]}</td>
+            <td>${item[2]}</td>
+            <td>${item[3]}</td>
+        `;
+        tableBody.appendChild(row);
+    });
 }
 
 // Registrar ingreso de insumos
@@ -93,16 +125,10 @@ async function registerSupplyEntry(e) {
 
     if (itemName && itemQuantity && itemCategory) {
         const values = [[itemName, itemQuantity, itemCategory, date]];
-        try {
-            await appendData("bodega!A2:D", values);
-            alert("Ingreso registrado exitosamente");
-            await loadInventory();
-            await updateSummaryCounters();
-        } catch (error) {
-            console.error("Error registrando ingreso:", error);
-        }
-    } else {
-        alert("Por favor, completa todos los campos.");
+        await appendData("bodega!A2:D", values);
+        alert("Ingreso registrado exitosamente");
+        await loadInventory();
+        await updateSummaryCounters();
     }
 }
 
@@ -116,16 +142,33 @@ async function registerSupplyExit(e) {
 
     if (itemName && itemQuantity && personReceiving) {
         const values = [[itemName, itemQuantity, personReceiving, date]];
-        try {
-            await appendData("bodega!E2:H", values);
-            alert("Egreso registrado exitosamente");
-            await loadDeliveries();
-            await updateSummaryCounters();
-        } catch (error) {
-            console.error("Error registrando egreso:", error);
-        }
-    } else {
-        alert("Por favor, completa todos los campos.");
+        await appendData("bodega!E2:H", values);
+        alert("Egreso registrado exitosamente");
+        await loadDeliveries();
+        await updateSummaryCounters();
     }
 }
 
+// Descargar resumen en PDF
+function downloadPDF() {
+    const doc = new jsPDF();
+    doc.text("Resumen de Stock", 14, 20);
+    const stockTable = document.getElementById("stock-table");
+    const rows = [];
+
+    for (let i = 1; i < stockTable.rows.length; i++) {
+        const cells = stockTable.rows[i].cells;
+        const rowData = [];
+        for (let j = 0; j < cells.length; j++) {
+            rowData.push(cells[j].textContent);
+        }
+        rows.push(rowData);
+    }
+
+    doc.autoTable({
+        head: [['Artículo', 'Cantidad Ingreso', 'Cantidad Egreso', 'Stock Actual']],
+        body: rows,
+        startY: 30,
+    });
+    doc.save("Resumen_Stock.pdf");
+}
