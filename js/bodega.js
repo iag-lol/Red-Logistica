@@ -1,36 +1,23 @@
-import { initializeGapiClient, loadSheetData, appendData, isUserAuthenticated } from '/Red-Logistica/js/googleSheets.js';
+import { initializeGapiClient, loadSheetData, appendData, isUserAuthenticated } from '/Red-Logistica/api/googleSheets.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
-        // Espera a que la API de Google se haya cargado completamente antes de inicializar el cliente
-        await ensureGoogleApiLoaded();
+        // Inicializar el cliente de Google API y cargar la autenticación
         await initializeGapiClient();
-        console.log("Conectado a Google Sheets");
+        console.log("Cliente GAPI inicializado y autenticado.");
 
-        // Verificar si el usuario está autenticado
+        // Cargar los datos de inventario
         if (isUserAuthenticated()) {
             await loadInventory();
         } else {
-            console.warn("Usuario no autenticado");
+            console.warn("Usuario no autenticado. Intentando autenticación...");
         }
     } catch (error) {
-        console.error("Error al conectar con Google Sheets:", error);
+        console.error("Error al inicializar la API de Google:", error);
     }
 });
 
-// Función para verificar si la API de Google está completamente cargada
-async function ensureGoogleApiLoaded() {
-    return new Promise((resolve, reject) => {
-        if (typeof gapi !== 'undefined') {
-            resolve();
-        } else {
-            console.error("La API de Google no se ha cargado.");
-            reject("API de Google no cargada");
-        }
-    });
-}
-
-// Función para cargar datos en la tabla de ingresos
+// Función para cargar datos de inventario desde Google Sheets
 async function loadInventory() {
     try {
         const inventoryData = await loadSheetData("bodega!A2:D");
@@ -43,18 +30,18 @@ async function loadInventory() {
             tableBody.appendChild(tr);
         });
     } catch (error) {
-        console.error("Error al cargar datos de inventario:", error);
+        console.error("Error al cargar inventario:", error);
     }
 }
 
-// Función para registrar un nuevo ingreso
+// Registrar nuevo ingreso
 document.getElementById("add-supply-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const itemName = document.getElementById("ingreso-item-name").value.trim();
     const itemQuantity = parseInt(document.getElementById("ingreso-item-quantity").value, 10);
     const itemCategory = document.getElementById("ingreso-item-category").value;
-    const date = new Date().toLocaleString();
+    const date = new Date().toLocaleString('es-ES', { hour12: false });
 
     if (itemName && itemQuantity && itemCategory) {
         try {
@@ -62,10 +49,13 @@ document.getElementById("add-supply-form").addEventListener("submit", async (e) 
             await appendData("bodega!A2:D", values);
             alert("Ingreso registrado exitosamente");
             await loadInventory();
+            e.target.reset(); // Limpiar formulario
         } catch (error) {
             console.error("Error al registrar ingreso:", error);
         }
     } else {
         alert("Por favor, completa todos los campos.");
     }
+});
+
 });
