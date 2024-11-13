@@ -1,4 +1,4 @@
-import { initializeGapiClient, loadSheetData, appendData, isUserAuthenticated } from '/RedLogistica/api/googleSheets.js';
+import { initializeGapiClient, loadSheetData, appendData, isUserAuthenticated } from '/Red-Logistica/api/googleSheets.js';
 
 document.addEventListener("DOMContentLoaded", async () => {
     try {
