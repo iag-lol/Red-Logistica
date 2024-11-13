@@ -46,7 +46,7 @@ async function handleLogin(event) {
 }
 
 function redirectToRolePage(role) {
-    const baseUrl = 'https://iag-lol.github.io/RedLogistica/roles/';
+    const baseUrl = 'https://iag-lol.github.io/Red-Logistica/roles/';
     switch (role) {
         case 'Supervisor':
             window.location.href = `${baseUrl}supervisor.html`;
