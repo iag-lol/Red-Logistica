@@ -25,6 +25,32 @@ export function initializeGapiClient() {
     });
 }
 
+async function loadGapiScript() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://apis.google.com/js/api.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Error al cargar la API de Google'));
+        document.body.appendChild(script);
+    });
+}
+
+export async function initializeGapiClient() {
+    try {
+        await loadGapiScript();
+        gapi.load('client:auth2', async () => {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"]
+            });
+            initializeOAuth();
+        });
+    } catch (error) {
+        console.error("Error al inicializar GAPI:", error);
+    }
+}
+
+
 // Inicializar OAuth con Google
 function initializeOAuth() {
     tokenClient = google.accounts.oauth2.initTokenClient({
