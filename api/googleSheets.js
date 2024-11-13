@@ -141,9 +141,9 @@ export async function appendData(range, values) {
     }
 }
 
-// Redireccionar según el rol
-export function redirectToRolePage(role) {
-    const baseUrl = '/roles/';
+
+function redirectToRolePage(role) {
+    const baseUrl = 'https://iag-lol.github.io/Red-Logistica/roles/';
     switch (role) {
         case 'Supervisor':
             window.location.href = `${baseUrl}supervisor.html`;
@@ -157,7 +157,7 @@ export function redirectToRolePage(role) {
         case 'Movilizador':
             window.location.href = `${baseUrl}movilizador.html`;
             break;
-            case 'Bodega':
+             case 'Bodega':
             window.location.href = `${baseUrl}bodega.html`;
             break;
         default:
