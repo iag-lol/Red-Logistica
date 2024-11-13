@@ -60,6 +60,9 @@ function redirectToRolePage(role) {
         case 'Movilizador':
             window.location.href = `${baseUrl}movilizador.html`;
             break;
+             case 'Bodega':
+            window.location.href = `${baseUrl}bodega.html`;
+            break;
         default:
             alert('Rol no reconocido');
             break;
